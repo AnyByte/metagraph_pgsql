@@ -1,9 +1,7 @@
-"""a directed graph example."""
-
-from sqlalchemy import Column, Integer, ForeignKey, \
-    create_engine
+from sqlalchemy import Column, Integer, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql.json import JSONB
 
 Base = declarative_base()
 
@@ -13,11 +11,16 @@ class Node(Base):
 
     node_id = Column(Integer, primary_key=True)
 
+    data = Column(JSONB)
+
     def higher_neighbors(self):
         return [x.higher_node for x in self.lower_edges]
 
     def lower_neighbors(self):
         return [x.lower_node for x in self.higher_edges]
+
+    def all_neighbors(self):
+        return [x.all_nodes for x in self.all_edges]
 
 
 class Edge(Base):
@@ -43,41 +46,11 @@ class Edge(Base):
         primaryjoin=higher_id == Node.node_id,
         backref='higher_edges')
 
+    all_nodes = relationship(
+        Node,
+        primaryjoin=higher_id == Node.node_id or lower_id == Node.node_id,
+        backref='all_edges')
+
     def __init__(self, n1, n2):
         self.lower_node = n1
         self.higher_node = n2
-
-
-engine = create_engine("postgresql+psycopg2://maxavatar:1234@localhost:5432/mgraph", echo=True)
-Base.metadata.create_all(engine)
-
-session = sessionmaker(engine)()
-
-# create a directed graph like this:
-#       n1 -> n2 -> n1
-#                -> n5
-#                -> n7
-#          -> n3 -> n6
-
-n1 = Node()
-n2 = Node()
-n3 = Node()
-n4 = Node()
-n5 = Node()
-n6 = Node()
-n7 = Node()
-
-Edge(n1, n2)
-Edge(n1, n3)
-Edge(n2, n1)
-Edge(n2, n5)
-Edge(n2, n7)
-Edge(n3, n6)
-
-session.add_all([n1, n2, n3, n4, n5, n6, n7])
-session.commit()
-
-assert [x for x in n3.higher_neighbors()] == [n6]
-assert [x for x in n3.lower_neighbors()] == [n1]
-assert [x for x in n2.lower_neighbors()] == [n1]
-assert [x for x in n2.higher_neighbors()] == [n1, n5, n7]
