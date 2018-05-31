@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, ForeignKey, String, Boolean
+from sqlalchemy import Column, Integer, ForeignKey, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
+from sqlalchemy.orm import backref
 
 Base = declarative_base()
 
@@ -25,7 +26,7 @@ class MetaVertex(Base):
 
     # Представление объекта
     def __repr__(self):
-        return "MetaVerter(name=%r, node_id=%r)" % (
+        return "MetaVertex(name=%r, node_id=%r)" % (
             self.name,
             self.id
         )
@@ -33,11 +34,21 @@ class MetaVertex(Base):
     # Список соседей справа, то есть
     # <ЭТА ВЕРШИНА> ---ребро---> Список айди вершин
     def higher_neighbors(self):
-        return [x.higher_node for x in self.lower_relations]
+        return [x.higher_node for x in self.lower_edges]
 
     # Список соседей слева, то есть
     # Список айди вершин <---ребро--- <ЭТА ВЕРШИНА>
     def lower_neighbors(self):
+        return [x.lower_node for x in self.higher_edges]
+
+    # Список соседей справа, то есть
+    # <ЭТА ВЕРШИНА> ---ребро---> Список айди вершин
+    def higher_relations(self):
+        return [x.higher_node for x in self.lower_relations]
+
+    # Список соседей слева, то есть
+    # Список айди вершин <---ребро--- <ЭТА ВЕРШИНА>
+    def lower_relations(self):
         return [x.lower_node for x in self.higher_relations]
 
 
@@ -66,13 +77,25 @@ class Relation(Base):
     lower_node = relationship(
         MetaVertex,
         primaryjoin=lower_id == MetaVertex.id,
-        backref='lower_relations')
+        backref=backref('lower_edges', cascade="all,delete"))
 
     # Связь конечной вершины ребра от айди ребра из таблицы node
     higher_node = relationship(
         MetaVertex,
         primaryjoin=higher_id == MetaVertex.id,
-        backref='higher_relations')
+        backref=backref('higher_edges', cascade="all,delete"))
+
+    # Связь начальной вершины ребра от айди ребра из таблицы node
+    lower_rel = relationship(
+        MetaVertex,
+        primaryjoin=lower_id == MetaVertex.id and rel_type == "rel",
+        backref=backref('lower_relations', cascade="all,delete"))
+
+    # Связь конечной вершины ребра от айди ребра из таблицы node
+    higher_rel = relationship(
+        MetaVertex,
+        primaryjoin=higher_id == MetaVertex.id and rel_type == "rel",
+        backref=backref('higher_relations', cascade="all,delete"))
 
     def __init__(self, rel, n1, n2):
         self.rel_type = rel  # Тип отношения

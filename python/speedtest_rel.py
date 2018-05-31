@@ -8,7 +8,7 @@ import time
 from sqlalchemy.dialects.postgresql import NUMERIC
 from sqlalchemy.sql.expression import cast
 
-engine = create_engine("postgresql+psycopg2://maxavatar:1234@localhost:5433/id_mgraph", echo=False)
+engine = create_engine("postgresql+psycopg2://maxavatar:1234@185.98.87.154:5432/id_mgraph", echo=False)
 Base.metadata.create_all(engine)
 
 session = sessionmaker(engine)()
@@ -29,7 +29,7 @@ def add_remove_node(node_count=10):
     max_id = 1 if max_id is None else int(max_id) + 1
     for n in range(max_id, max_id + node_count):
         s = time.time()
-        session.add(Node(f"v{n}"))
+        session.add(Node("v{}".format(n)))
         session.commit()
         time_delta = time.time() - s
         avg_time_total += time_delta
@@ -69,7 +69,7 @@ def add_remove_edge(edge_count=10):
 
     nodes = []
     for n in range(edge_count + 1):
-        n = Node(f"v{n}")
+        n = Node("v{}".format(n))
         nodes.append(n)
         session.add(n)
         session.commit()
@@ -128,38 +128,123 @@ def edit_node(try_count=10):
 def get_flat(node_count=10):
     clear_db()
 
+    N = Node("v{}".format(0))
+    session.add(N)
+    session.commit()
+    for a in range(node_count):
+        a += 1
+        n = Node("v{}".format(a))
+        Edge("rel", N, n)
+        session.add(n)
+        session.commit()
+
+    s = time.time()
+    item = N.lower_relations
+    time_delta = time.time() - s
+    print("FOUND FLAT count:{} --- {} seconds ---".format(node_count, time_delta))
+
+    clear_db()
+
+
+def get_depth(node_count=10):
+    clear_db()
+
     nodes = []
-    edges = []
-    N = Node(f"v{0}")
+
+    N = Node("v{}".format(0))
     nodes.append(N)
     session.add(N)
     session.commit()
     for a in range(node_count):
         a += 1
-        n = Node(f"v{a}")
-        Edge(False, n, nodes[-1])
+        n = Node("v{}".format(a))
+        Edge("rel", nodes[-1], n)
         nodes.append(n)
         session.add(n)
         session.commit()
 
     s = time.time()
-    item_num = int(node_count/2)
-    item = session.query(Node).filter(Node.name == "v{}".format(item_num)).all()
+    item = find_recur(N)
     time_delta = time.time() - s
-    print("FOUND ITEM v{} FLAT count:{} --- {} seconds ---".format(item_num, node_count, time_delta))
+    print("FOUND DEPTH count:{} --- {} seconds ---".format(node_count, time_delta))
 
     clear_db()
 
 
-def get_depth():
-    pass
+def del_depth(node_count=10):
+    clear_db()
+
+    nodes = []
+
+    N = Node("v{}".format(0))
+    nodes.append(N)
+    session.add(N)
+    session.commit()
+    for a in range(node_count):
+        a += 1
+        n = Node("v{}".format(a))
+        Edge("rel", nodes[-1], n)
+        nodes.append(n)
+        session.add(n)
+        session.commit()
+
+    s = time.time()
+    del_recur(N)
+    time_delta = time.time() - s
+    print("DELETED DEPTH count:{} --- {} seconds ---".format(node_count, time_delta))
+
+    clear_db()
+
+
+def del_flat(node_count=10):
+    clear_db()
+
+    nodes = []
+
+    N = Node("v{}".format(0))
+    nodes.append(N)
+    session.add(N)
+    session.commit()
+    for a in range(node_count):
+        a += 1
+        n = Node("v{}".format(a))
+        Edge("rel", N, n)
+        nodes.append(n)
+        session.add(n)
+        session.commit()
+
+    s = time.time()
+    del_recur(N)
+    time_delta = time.time() - s
+    print("DELETED FLAT count:{} --- {} seconds ---".format(node_count, time_delta))
+
+    clear_db()
+
+
+def find_recur(node):
+    for lower_relation in node.lower_relations:
+        find_recur(lower_relation.higher_node)
+    return node
+
+
+def del_recur(node):
+    for lower_relation in node.lower_relations:
+        del_recur(lower_relation.higher_node)
+    session.delete(node)
+    session.commit()
 
 
 if __name__ == "__main__":
     # add_remove_node(100)
-    #
+
     # add_remove_edge(100)
 
     # edit_node(10)
 
-    get_flat(10)
+    # get_flat(1000)
+
+    # get_depth(100)
+
+    # del_depth(100)
+
+    del_flat(100)

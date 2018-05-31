@@ -17,13 +17,14 @@ namespace mgraph
         static void Main(string[] args)
         {
             context.Database.Migrate();
-            //FillDatabase(50000, 5000);
+            //FillDatabase(30000, 5000);
+            //Console.WriteLine("Done!");
             //Console.ReadLine();
-            GenerateMetagraph(10, 10);
+            AddMetavertex(4, 1000);
             Console.WriteLine("Done!");
             Console.ReadLine();
-            //AddMetavertex(50, 10000);
-            //Console.ReadLine();
+            GenerateMetagraph(3, 3);
+            Console.WriteLine("Done!");
             Console.ReadLine();
         }
 

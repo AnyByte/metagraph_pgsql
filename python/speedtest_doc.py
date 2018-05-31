@@ -8,7 +8,7 @@ import time
 from sqlalchemy.dialects.postgresql import NUMERIC
 from sqlalchemy.sql.expression import cast
 
-engine = create_engine("postgresql+psycopg2://maxavatar:1234@localhost:5433/doc_mgraph", echo=False)
+engine = create_engine("postgresql+psycopg2://maxavatar:1234@185.98.87.154:5432/doc_mgraph", echo=False)
 Base.metadata.create_all(engine)
 
 session = sessionmaker(engine)()
